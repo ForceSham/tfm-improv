@@ -32,8 +32,9 @@ tfmObjects[6] = "Ball"
 adminTimer = 0
 inHole = 0
 gameStart=false
-garbage=0
 objectLimit=0
+
+math.randomseed(os.time())
 
 tfm.exec.newGame(2852771)
 
@@ -97,6 +98,7 @@ function calcShamExp(name,shamanExp,shamanLevel)
 end	
 
 function objectTypeRestriction()
+	typeRestrict = true
 	if getInfo(shaman,4) == 1 or tfm.get.room.playerList[shaman].shamanMode == 2 then
 		tfmObjects[4] = "Large Plank"
 	else
@@ -117,19 +119,29 @@ function objectAmountRestriction()
 		objectLimit = math.random(23-(getInfo(shaman,4)*5),28-(getInfo(shaman,4)*5))
 	elseif tfm.get.room.playerList[shaman].shamanMode == 1 then
 		objectLimit = math.random(25-(getInfo(shaman,4)*5),30-(getInfo(shaman,4)*5))
-	else
+	elseif tfm.get.room.playerList[shaman].shamanMode == 2 then
 		objectLimit = math.random(30-(getInfo(shaman,4)*5),35-(getInfo(shaman,4)*5))
+	end
+	if not table.exists(allowedObjects,4) and typeRestrict then 
+		if table.exists(allowedObjects,3) then
+			objectLimit = objectLimit + 7
+		elseif table.exists(allowedObjects,2) then
+			objectLimit = objectLimit + 15
+		else
+			objectLimit = objectLimit + 23
+		end
 	end
 	tfm.exec.chatMessage("<J>You're limited to spawning "..tostring(objectLimit).." objects!")
 	tfm.exec.setUIMapName(objectLimit)
 end
 
 function nailZones()
+	cloudSize = 1
+	if diffMod == 2 then
+		cloudSize = 1.4
+	end
 	coord1=math.random(100,700)
 	coord2=math.random(50,350)
-	garbage=math.random()
-	garbage=math.random()
-	garbage=math.random()
 	coord3=math.random(100,700)
 	coord4=math.random(75,325)
 	tfm.exec.chatMessage("<J>Some no nail zones have appeared!")
@@ -151,8 +163,8 @@ function nailZones()
 		})	
 	tfm.exec.addPhysicObject(2,coord1,coord2,{
 		type=8,
-		height=200,
-		width=250,
+		height=200*cloudSize,
+		width=250*cloudSize,
 		angle=math.random(0,90)*(getInfo(shaman,4)/2),
 		dynamic=true,
 		mass=-999999,
@@ -162,8 +174,8 @@ function nailZones()
 		})	
 	tfm.exec.addPhysicObject(4,coord3,coord4,{
 		type=8,
-		height=200,
-		width=250,
+		height=200*cloudSize,
+		width=250*cloudSize,
 		angle=math.random(0,90)*(getInfo(shaman,4)/2),
 		dynamic=true,
 		mass=-999999,
@@ -251,6 +263,7 @@ if gameStart then
 	mort = false
 	anvilRain = false
 	amountRestrict = false
+	typeRestrict = false
 	anvilTimer = 0
 	blackout = false
 	blackoutTimer = 0
@@ -387,9 +400,6 @@ function eventLoop(currentTime,timeRemaining)
 			calcShamExp(shaman,getInfo(shaman,2),getInfo(shaman,3))
 		end
 		if nextmap == nil then 
-			garbage=math.random()
-			garbage=math.random()
-			garbage=math.random()
 			tfm.exec.newGame(maplist[math.random(#maplist)])
 		else
 			tfm.exec.newGame(nextmap)
@@ -402,9 +412,6 @@ function eventLoop(currentTime,timeRemaining)
 		if anvilTimer%30 == 0 then
 			tfm.exec.addShamanObject(10,math.random(50,750),-50)
 			if tonumber(getInfo(shaman,4)) == 3 then
-				garbage=math.random()
-				garbage=math.random()
-				garbage=math.random()
 				tfm.exec.addShamanObject(10,math.random(50,750),-50)
 			end
 		end
