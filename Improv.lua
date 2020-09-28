@@ -1,12 +1,13 @@
 admins={"Force_shaman#0000"}
+bannedPlayers={}
 players={}
-hiddenCommands={"maplist","addmap","removemap","map","score","mod","gametype"}
+hiddenCommands={"maplist","addmap","removemap","map","score","mod","gametype","ban","unban"}
 maplist={}
 gameTypeList={"Type restriction","Amount restriction","Nailzones","Anvil rain","Blackout","really bad"}
 addMapQueue={}
 removeMapQueue={}
 allowedObjects = {}
-functionNames = {"AutoNewGame","AllShamanSkills","AutoTimeLeft","MortCommand"}
+functionNames = {"AutoNewGame","AllShamanSkills","AutoTimeLeft","MortCommand","PhysicalConsumables","PrespawnPreview"}
 tfmObjects={}
 
 for i=1,#hiddenCommands do
@@ -14,7 +15,7 @@ for i=1,#hiddenCommands do
 end
 
 for i=1,#functionNames do
-	_G["tfm.exec.disable"..functionNames[i]]()
+	tfm.exec["disable"..functionNames[i]]()
 end
 
 tfm.exec.chatMessage("<VI>Welcome to Improvision! Type !help for info.")
@@ -49,7 +50,7 @@ return false
 end
 
 function table.find(t,element)
-	for i,val in pairs(t) do
+	for i,val in ipairs(t) do
 		if val == element then
 			return i
 		end
@@ -216,6 +217,13 @@ function checkMice()
 	return false
 end
 
+function punishBadMice()
+	for x,y in ipairs(bannedPlayers) do
+		tfm.exec.killPlayer(y)
+		tfm.exec.setPlayerScore(y,-420)
+	end
+end
+
 function saveMaplist()
 	local temp = ""
 	for i,map in pairs(maplist) do
@@ -234,6 +242,7 @@ end
 
 function eventNewGame()
 if gameStart then
+	punishBadMice()
 	--reset global vars
 	tfm.exec.removePhysicObject(5)
 	objectLimit = 1000
@@ -501,9 +510,8 @@ function eventChatCommand(name,msg)
 	elseif string.lower(arg[1]) == "mod" and table.exists(admins,name)	then
 		tfm.exec.chatMessage("<R>[Improvision]"..string.gsub(msg, "mod",""))
 	elseif string.lower(arg[1]) == "map" and tonumber(arg[2]) ~= nil and table.exists(admins,name) then
-		nextmap = arg[2]
 		for i=1,#admins do
-			tfm.exec.chatMessage("Next map will be "..nextmap,admins[i])
+			tfm.exec.chatMessage("Next map will be "..arg[2],admins[i])
 		end
 	elseif string.lower(arg[1]) == "addmap" and table.exists(admins,name) and tonumber(arg[2])~=nil then
 		if table.exists(maplist,arg[2]) then
@@ -542,7 +550,7 @@ function eventChatCommand(name,msg)
 				openProfile(arg[2],name)
 			end
 		end
-	elseif string.lower(arg[1]) == "gametype" then
+	elseif string.lower(arg[1]) == "gametype" and table.exists(admins,name) then
 		if tonumber(arg[2]) > 0 and tonumber(arg[2]) < 7 then
 			gameType1 = tonumber(arg[2])
 			forceGameType = true
@@ -557,6 +565,40 @@ function eventChatCommand(name,msg)
 					tfm.exec.chatMessage("Next gametype will be "..(gameTypeList[tonumber(arg[3])]),admins[i])
 				end
 			end
+		end
+	elseif string.lower(arg[1]) == "ban" and table.exists(admins,name) then
+		for i=1,#players do
+			if players[i][1] == arg[2] then
+				updatePlayerData(arg[2],6,true)
+				table.insert(bannedPlayers,arg[2])
+				tfm.exec.chatMessage("<R>[Improvision] "..arg[2].." has been banished!")
+				punishBadMice()
+			end
+		end
+	elseif string.lower(arg[1]) == "unban" and table.exists(admins,name) then
+		for i=1,#players do
+			if players[i][1] == arg[2] and table.exists(bannedPlayers,arg[2]) then
+				updatePlayerData(arg[2],6,false)
+				table.remove(bannedPlayers,table.find(bannedPlayers,arg[2]))
+				tfm.exec.setPlayerScore(arg[2],0)
+			end
+		end
+	end
+end
+
+function eventChatMessage(name,msg)
+	if name == shaman and (string.lower(msg) == "ez" or string.lower(msg) == "easy")then
+		nameIndex = ""
+		for x = 1,#players do
+			if players[x][1] == name then
+				nameIndex = x
+			end
+		end
+		if players[nameIndex][4] ~= 3 then
+			players[nameIndex][4] = 3
+			updatePlayerData(name,4,3)
+		else 
+			tfm.exec.chatMessage("<R>[Improvision] no u")
 		end
 	end
 end
@@ -585,7 +627,7 @@ end
 
 function eventPlayerDataLoaded(name,data)
 	if data == "" or data == nil or data == "#" then
-		table.insert(players,{name,0,1,1,0})
+		table.insert(players,{name,0,1,1,0,false})
 	else
 		local arg = {}
 		for argument in data:gmatch("[^%s]+") do
@@ -600,6 +642,14 @@ function eventPlayerDataLoaded(name,data)
 		else
 			players[#players][5] = tonumber(arg[4])
 		end
+		if arg[5] == nil then
+			players[#players][6] = false
+		else
+			players[#players][6] = tonumber(arg[4])
+		end
+		if arg[6] == true then
+			table.insert(bannedPlayers,arg[1])
+		end	
 	end
  end
  
